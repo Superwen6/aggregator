@@ -67,5 +67,28 @@ jobs:
       - name: Refresh
         run: python -u subscribe/collect.py --all --refresh --overwrite --skip
 
+      - name: Publish to subscription repo
+        if: success()
+        env:
+          PUSH_TOKEN: ${{ secrets.GIST_PAT }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -e
+          for f in clash.yaml v2ray.txt singbox.json; do
+            if [ ! -s "data/$f" ]; then echo "missing data/$f"; exit 1; fi
+          done
+          git clone "https://x-access-token:${PUSH_TOKEN}@github.com/${OWNER}/backup-sub.git" /tmp/backup-sub
+          cp data/clash.yaml data/v2ray.txt data/singbox.json /tmp/backup-sub/
+          cd /tmp/backup-sub
+          git config user.name "aggregator-bot"
+          git config user.email "aggregator-bot@users.noreply.github.com"
+          git add clash.yaml v2ray.txt singbox.json
+          if git diff --cached --quiet; then
+            echo "no subscription changes"
+          else
+            git commit -m "update subscriptions"
+            git push
+          fi
+
       - name: Timestamp
         run: date
