@@ -69,17 +69,21 @@ jobs:
 
       - name: Publish to subscription repo
         if: success()
-        env:
-          PUSH_TOKEN: ${{ secrets.GIST_PAT }}
-          OWNER: ${{ github.repository_owner }}
+        uses: actions/checkout@v4
+        with:
+          repository: Superwen6/backup-sub
+          token: ${{ secrets.GIST_PAT }}
+          path: backup-sub
+
+      - name: Copy and push subscriptions
+        if: success()
         run: |
           set -e
           for f in clash.yaml v2ray.txt singbox.json; do
             if [ ! -s "data/$f" ]; then echo "missing data/$f"; exit 1; fi
           done
-          git clone "https://x-access-token:${PUSH_TOKEN}@github.com/${OWNER}/backup-sub.git" /tmp/backup-sub
-          cp data/clash.yaml data/v2ray.txt data/singbox.json /tmp/backup-sub/
-          cd /tmp/backup-sub
+          cp data/clash.yaml data/v2ray.txt data/singbox.json backup-sub/
+          cd backup-sub
           git config user.name "aggregator-bot"
           git config user.email "aggregator-bot@users.noreply.github.com"
           git add clash.yaml v2ray.txt singbox.json
@@ -89,6 +93,5 @@ jobs:
             git commit -m "update subscriptions"
             git push
           fi
-
       - name: Timestamp
         run: date
